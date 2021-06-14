@@ -30,14 +30,14 @@ def main():
         print("you need to pass in a ticker name to process")
         print(help)
         sys.exit()
-    
+
     try:
         date_start = sys.argv[2]
     except IndexError:
         print("you need to pass in a start date as AAAA-MM-DD to process")
         print(help)
         sys.exit()
-    
+
     try:
         date_end = sys.argv[3]
     except IndexError:
@@ -45,10 +45,9 @@ def main():
         print(help)
         sys.exit()
 
-
     # do the real work:
     print("Getting data: %s from %s to %s" % (ticker, date_start, date_end))
-    
+
     # Get data as pandas dataframe
     data = regression_data_mod.reg_data_import_data_for_ticker(
         ticker, date_start, date_end)
@@ -66,6 +65,23 @@ def main():
     reg_utils.list_columns(stock_values_log)  # DEBUG
 
     # Re-shape timestamps for linear regression
-    regression_data_mod.reg_comp_shape_data(timestamps_array)
+    x = regression_compute_mod.reg_comp_shape_data(timestamps_array)
+    y = stock_values_log
 
+    # Compute predicted model
+    y_pred = regression_compute_mod.reg_comp_pred_model(x,y)
 
+    # Compute SCR
+    scr = regression_compute_mod.reg_comp_scr(y, y_pred)
+
+    # Compute SCT
+    sct = regression_compute_mod.reg_comp_sct(y)
+
+    # Compute standard error of the estimate
+    see = regression_compute_mod.reg_comp_sigma_estimated_non_bias(scr, y)
+
+    # Compute standard error value
+    y_pred_exp_minus2EC = regression_compute_mod.reg_comp_minus_2_sigma_values(y_pred, see)
+    y_pred_exp_minus1EC = regression_compute_mod.reg_comp_minus_1_sigma_values(y_pred, see)
+    y_pred_exp_plus1EC = regression_compute_mod.reg_comp_1_sigma_values(y_pred, see)
+    y_pred_exp_plus2EC = regression_compute_mod.reg_comp_2_sigma_values(y_pred, see)
