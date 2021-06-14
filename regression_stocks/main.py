@@ -5,6 +5,8 @@
 here is a simple main() module -- to demonstrate setuptools entrypoints
 """
 
+import numpy as np
+import matplotlib.pyplot as plt
 import sys
 import os
 
@@ -69,7 +71,7 @@ def main():
     y = stock_values_log
 
     # Compute predicted model
-    y_pred = regression_compute_mod.reg_comp_pred_model(x,y)
+    y_pred = regression_compute_mod.reg_comp_pred_model(x, y)
 
     # Compute SCR
     scr = regression_compute_mod.reg_comp_scr(y, y_pred)
@@ -81,7 +83,26 @@ def main():
     see = regression_compute_mod.reg_comp_sigma_estimated_non_bias(scr, y)
 
     # Compute standard error value
-    y_pred_exp_minus2EC = regression_compute_mod.reg_comp_minus_2_sigma_values(y_pred, see)
-    y_pred_exp_minus1EC = regression_compute_mod.reg_comp_minus_1_sigma_values(y_pred, see)
-    y_pred_exp_plus1EC = regression_compute_mod.reg_comp_1_sigma_values(y_pred, see)
-    y_pred_exp_plus2EC = regression_compute_mod.reg_comp_2_sigma_values(y_pred, see)
+    y_pred_exp_minus2EC = regression_compute_mod.reg_comp_minus_2_sigma_values(
+        y_pred, see)
+    y_pred_exp_minus1EC = regression_compute_mod.reg_comp_minus_1_sigma_values(
+        y_pred, see)
+    y_pred_exp_plus1EC = regression_compute_mod.reg_comp_1_sigma_values(
+        y_pred, see)
+    y_pred_exp_plus2EC = regression_compute_mod.reg_comp_2_sigma_values(
+        y_pred, see)
+
+    # Plot regression
+    fig = plt.figure(facecolor='yellow')
+    ax = fig.add_subplot(1, 1, 1)
+
+    x2=data.index.values
+
+    ax.plot(x2, stock_values, color='blue')  # nuage de point
+    ax.plot(x2, np.exp(y_pred), color='red')  # nuage de point
+    ax.plot(x2, y_pred_exp_minus2EC, color='purple')  # nuage de point
+    ax.plot(x2, y_pred_exp_minus1EC, color='purple')  # nuage de point
+    ax.plot(x2, y_pred_exp_plus1EC, color='purple')  # nuage de point
+    ax.plot(x2, y_pred_exp_plus2EC, color='purple')  # nuage de point
+
+    plt.show()
