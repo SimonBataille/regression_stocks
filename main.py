@@ -9,6 +9,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sys
 import os
+import csv
+import pandas as pd
+import yfinance as yf  # import financial data
+from datetime import datetime
+from datetime import timedelta
 
 from pandas.core.frame import DataFrame
 
@@ -33,6 +38,116 @@ def main():
         print(help)
         sys.exit()
 
+    ### data already exists
+    # Specify path
+    path = './data/{}.csv'.format(ticker)
+    
+    # Check whether the specified
+    # path exists or not
+    isExist = os.path.exists(path)
+    print(isExist)
+
+    ### if exist: only get missing data
+    if(isExist):
+        # CSV to dataframe
+        df = pd.read_csv(path)
+        
+        # Check last date from CSV
+        dateLast = df.iloc[-1]["Date"].split(' ', 1)[0] # string
+        print(dateLast)
+
+        datetimeLast = datetime.strptime(dateLast, "%Y-%m-%d").date() # dateTime
+        dateNext = datetimeLast + timedelta(days=1)
+
+        dateNextStr = dateNext.strftime("%Y-%m-%d") # string
+        print(dateNextStr)
+
+        # TEST 
+        pd.set_option('display.max_rows', None)
+        path1='./data/^GSPC.csv'
+        df1 = pd.read_csv(path1)
+        path2='./data/^GSPCNew.csv'
+        df2 = pd.read_csv(path2)
+
+        concate = pd.concat([df1, df2], ignore_index=True)
+        print(concate)
+        concate.to_csv('./data/test.csv')
+        reg_utils.list_columns(concate)  # DEBUG
+        concate['Date']= pd.to_datetime(concate['Date'], utc=True)
+        concate.index = concate['Date']
+
+        # Change index from date to timestamp
+        timestamps_array = regression_data_mod.reg_data_do_time_array(concate)
+
+        # Get stocks values
+        stock_values = regression_data_mod.reg_data_get_stocks_values(concate)
+
+        # Get log stocks values
+        stock_values_log = regression_data_mod.reg_data_get_stocks_log(
+            stock_values)
+        reg_utils.list_columns(stock_values_log)  # DEBUG
+
+        # Re-shape timestamps for linear regression
+        x = regression_compute_mod.reg_comp_shape_data(timestamps_array)
+        y = stock_values_log
+
+        # Compute predicted model
+        y_pred = regression_compute_mod.reg_comp_pred_model(x, y)
+
+        # Compute SCR
+        scr = regression_compute_mod.reg_comp_scr(y, y_pred)
+
+        # Compute SCT
+        sct = regression_compute_mod.reg_comp_sct(y)
+
+        # Compute standard error of the estimate
+        see = regression_compute_mod.reg_comp_sigma_estimated_non_bias(scr, y)
+
+        # Compute standard error value
+        y_pred_exp_minus2EC = regression_compute_mod.reg_comp_minus_2_sigma_values(
+            y_pred, see)
+        y_pred_exp_minus1EC = regression_compute_mod.reg_comp_minus_1_sigma_values(
+            y_pred, see)
+        y_pred_exp_plus1EC = regression_compute_mod.reg_comp_1_sigma_values(
+            y_pred, see)
+        y_pred_exp_plus2EC = regression_compute_mod.reg_comp_2_sigma_values(
+            y_pred, see)
+
+        # Plot regression
+        fig = plt.figure(facecolor='yellow')
+        ax = fig.add_subplot(1, 1, 1)
+
+        x2=concate.index.values
+
+        ax.plot(x2, stock_values, color='blue')  # nuage de point
+        ax.plot(x2, np.exp(y_pred), color='red')  # nuage de point
+        ax.plot(x2, y_pred_exp_minus2EC, color='purple')  # nuage de point
+        ax.plot(x2, y_pred_exp_minus1EC, color='purple')  # nuage de point
+        ax.plot(x2, y_pred_exp_plus1EC, color='purple')  # nuage de point
+        ax.plot(x2, y_pred_exp_plus2EC, color='purple')  # nuage de point
+
+        plt.show()
+
+
+
+        sys.exit()
+        
+        # Retrieve missing data from API
+        tickerMissingDf = yf.download(ticker, dateNextStr)
+
+        # Concate dataframe
+        concateData = pd.concat([df, tickerMissingDf])
+
+        # Store data in csv file
+        concateData.to_csv(path)
+
+    else:
+        # Get all data from API
+        tickerMissingDf = yf.download(ticker, dateLast)
+        tickerMissingDf.to_csv(path)
+
+    
+    '''
     try:
         date_start = sys.argv[2]
     except IndexError:
@@ -46,6 +161,7 @@ def main():
         print("you need to pass in a start date as AAAA-MM-DD to process")
         print(help)
         sys.exit()
+    '''
 
     # do the real work:
     print("Getting data: %s from %s to %s" % (ticker, date_start, date_end))
