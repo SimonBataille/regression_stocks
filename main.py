@@ -50,24 +50,18 @@ def main():
     ### if exist: only get missing data
     if(isExist):
         # CSV to dataframe
-        df = pd.read_csv(path)
-        # df.reset_index()
-        df = df.drop(df.columns[[0]],axis=1)
-        # df = df.set_index('Date')
-        # df.index = df['Date']
+        df = pd.read_csv(path, index_col='Date')
         # df = df.drop(df.columns[[0]],axis=1)
         
         # Check last date from CSV
-        dateLast = df.iloc[-1]["Date"].split(' ', 1)[0] # string
-        # dateLast = df.index[-1].split(' ', 1)[0] # string
-        print(dateLast)
+        # dateLast = df.iloc[-1]["Date"].split(' ', 1)[0] # string
+        dateLast = df.index[-1].split(' ', 1)[0] # string
 
         # Add one day to the string
         datetimeLast = datetime.strptime(dateLast, "%Y-%m-%d").date() # dateTime
         dateNext = datetimeLast + timedelta(days=1)
 
         dateNextStr = dateNext.strftime("%Y-%m-%d") # string
-        print(dateNextStr)
 
         # Check if data missing
         if(dateNext < datetime.now().date()):
@@ -76,36 +70,38 @@ def main():
             # Retrieve missing data from API
             dfn = yf.download(ticker, dateNextStr)
 
-            # add index
-            dfn = dfn.reset_index()
-
             # Concate dataframe
-            concateData = pd.concat([df, dfn], ignore_index=True)
+            concateData = pd.concat([df, dfn])
 
             # Store data in csv file
             concateData.to_csv(path)
+        
+        else:
+            concateData = df
+
+        concateData.index = pd.to_datetime(concateData.index, utc=True) # Convert index to dateTime
+        timestamps_array = regression_data_mod.reg_data_do_time_array(concateData) # Convert index to timestamp
       
-        sys.exit()
 
-        # TEST 
-        pd.set_option('display.max_rows', None)
-        path1='./data/^GSPC.csv'
-        df1 = pd.read_csv(path1)
-        path2='./data/^GSPCNew.csv'
-        df2 = pd.read_csv(path2)
+        # # TEST 
+        # pd.set_option('display.max_rows', None)
+        # path1='./data/^GSPC.csv'
+        # df1 = pd.read_csv(path1)
+        # path2='./data/^GSPCNew.csv'
+        # df2 = pd.read_csv(path2)
 
-        concate = pd.concat([df1, df2], ignore_index=True)
-        print(concate)
-        concate.to_csv('./data/test.csv')
-        reg_utils.list_columns(concate)  # DEBUG
-        concate['Date']= pd.to_datetime(concate['Date'], utc=True)
-        concate.index = concate['Date']
+        # concate = pd.concat([df1, df2], ignore_index=True)
+        # print(concate)
+        # concate.to_csv('./data/test.csv')
+        # reg_utils.list_columns(concate)  # DEBUG
+        # concate['Date']= pd.to_datetime(concate['Date'], utc=True)
+        # concate.index = concate['Date']
 
-        # Change index from date to timestamp
-        timestamps_array = regression_data_mod.reg_data_do_time_array(concate)
+        # # Change index from date to timestamp
+        # timestamps_array = regression_data_mod.reg_data_do_time_array(concate)
 
         # Get stocks values
-        stock_values = regression_data_mod.reg_data_get_stocks_values(concate)
+        stock_values = regression_data_mod.reg_data_get_stocks_values(concateData)
 
         # Get log stocks values
         stock_values_log = regression_data_mod.reg_data_get_stocks_log(
@@ -142,7 +138,7 @@ def main():
         fig = plt.figure(facecolor='yellow')
         ax = fig.add_subplot(1, 1, 1)
 
-        x2=concate.index.values
+        x2=concateData.index.values
 
         ax.plot(x2, stock_values, color='blue')  # nuage de point
         ax.plot(x2, np.exp(y_pred), color='red')  # nuage de point
@@ -153,6 +149,7 @@ def main():
 
         plt.show()
 
+        sys.exit()
 
 
         
