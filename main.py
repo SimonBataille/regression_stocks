@@ -51,16 +51,41 @@ def main():
     if(isExist):
         # CSV to dataframe
         df = pd.read_csv(path)
+        # df.reset_index()
+        df = df.drop(df.columns[[0]],axis=1)
+        # df = df.set_index('Date')
+        # df.index = df['Date']
+        # df = df.drop(df.columns[[0]],axis=1)
         
         # Check last date from CSV
         dateLast = df.iloc[-1]["Date"].split(' ', 1)[0] # string
+        # dateLast = df.index[-1].split(' ', 1)[0] # string
         print(dateLast)
 
+        # Add one day to the string
         datetimeLast = datetime.strptime(dateLast, "%Y-%m-%d").date() # dateTime
         dateNext = datetimeLast + timedelta(days=1)
 
         dateNextStr = dateNext.strftime("%Y-%m-%d") # string
         print(dateNextStr)
+
+        # Check if data missing
+        if(dateNext < datetime.now().date()):
+            print('Need to update data')
+
+            # Retrieve missing data from API
+            dfn = yf.download(ticker, dateNextStr)
+
+            # add index
+            dfn = dfn.reset_index()
+
+            # Concate dataframe
+            concateData = pd.concat([df, dfn], ignore_index=True)
+
+            # Store data in csv file
+            concateData.to_csv(path)
+      
+        sys.exit()
 
         # TEST 
         pd.set_option('display.max_rows', None)
@@ -130,21 +155,13 @@ def main():
 
 
 
-        sys.exit()
         
-        # Retrieve missing data from API
-        tickerMissingDf = yf.download(ticker, dateNextStr)
-
-        # Concate dataframe
-        concateData = pd.concat([df, tickerMissingDf])
-
-        # Store data in csv file
-        concateData.to_csv(path)
+        
 
     else:
         # Get all data from API
-        tickerMissingDf = yf.download(ticker, dateLast)
-        tickerMissingDf.to_csv(path)
+        dfn = yf.download(ticker, dateLast)
+        dfn.to_csv(path)
 
     
     '''
